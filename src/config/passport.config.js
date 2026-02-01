@@ -1,5 +1,4 @@
 const passport = require('passport');
-const local = require('passport-local');
 const jwt = require('passport-jwt');
 const { cookieExtractor } = require('../utils'); 
 
