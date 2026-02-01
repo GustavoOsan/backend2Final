@@ -1,4 +1,5 @@
 const { Router } = require('express');
+const passport = require('passport');
 
 const router = Router();
 
@@ -10,12 +11,10 @@ router.get('/register', (req, res) => {
     res.render('register');
 });
 
-router.get('/profile', (req, res) => {
-    if (!req.session.user) {
-        return res.redirect('/login');
-    }
+
+router.get('/profile', passport.authenticate('jwt', { session: false, failureRedirect: '/login' }), (req, res) => {
     res.render('profile', {
-        user: req.session.user
+        user: req.user
     });
 });
 
