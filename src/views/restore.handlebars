@@ -1,0 +1,30 @@
+<div style="margin: 50px;">
+    <h2>Recuperar Contraseña</h2>
+    <form id="restoreForm">
+        <label>Ingresa tu correo electrónico:</label>
+        <input name="email" type="email" required>
+        <button type="submit">Enviar Correo</button>
+    </form>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    const form = document.getElementById('restoreForm');
+    form.addEventListener('submit', e => {
+        e.preventDefault();
+        const data = new FormData(form);
+        const obj = {};
+        data.forEach((value, key) => obj[key] = value);
+
+        fetch('/api/sessions/forgot-password', {
+            method: 'POST',
+            body: JSON.stringify(obj),
+            headers: { 'Content-Type': 'application/json' }
+        }).then(result => result.json()).then(json => {
+            if (json.status === 'success') {
+                Swal.fire('Correo enviado', 'Revisa tu bandeja de entrada', 'success');
+            } else {
+                Swal.fire('Error', json.message, 'error');
+            }
+        });
+    })
+</script>
