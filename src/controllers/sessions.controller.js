@@ -1,12 +1,13 @@
-const userModel = require('../dao/models/user.model');
+const userDAO = require('../dao/user.dao'); 
 const { createHash, isValidPassword } = require('../utils');
 const jwt = require('jsonwebtoken');
 const UserDTO = require('../dto/user.dto');
 const { sendMail } = require('../services/mail.service');
+
 const register = async (req, res) => {
     try {
         const { first_name, last_name, email, age, password } = req.body;
-        const exists = await userModel.findOne({ email });
+        const exists = await userDAO.getByEmail(email);
 
         if (exists) {
             return res.status(400).send({ status: 'error', message: 'El usuario ya existe' });
@@ -20,9 +21,10 @@ const register = async (req, res) => {
             password: createHash(password)
         };
 
-        await userModel.create(user);
+        await userDAO.create(user);
         res.send({ status: 'success', message: 'Usuario registrado' });
     } catch (error) {
+        console.error("Error en register:", error);
         res.status(500).send({ status: 'error', message: 'Error al registrar' });
     }
 }
@@ -36,7 +38,7 @@ const login = async (req, res) => {
             return res.cookie('coderCookieToken', token, { httpOnly: true }).send({ status: 'success', message: 'Logueado como Admin' });
         }
 
-        const user = await userModel.findOne({ email });
+        const user = await userDAO.getByEmail(email);
 
         if (!user) {
             return res.status(400).send({ status: 'error', message: 'Usuario no encontrado' });
@@ -59,6 +61,7 @@ const login = async (req, res) => {
         }).send({ status: 'success', message: 'Logueado exitosamente' });
 
     } catch (error) {
+        console.error("Error en login:", error);
         res.status(500).send({ status: 'error', message: 'Error al iniciar sesión' });
     }
 }
@@ -78,7 +81,7 @@ const logout = (req, res) => {
 const forgotPassword = async (req, res) => {
     try {
         const { email } = req.body;
-        const user = await userModel.findOne({ email });
+        const user = await userDAO.getByEmail(email);
 
         if (!user) {
             return res.status(404).send({ status: 'error', message: 'Usuario no encontrado' });
@@ -102,7 +105,7 @@ const forgotPassword = async (req, res) => {
         res.send({ status: 'success', message: 'Correo enviado' });
 
     } catch (error) {
-        console.log(error);
+        console.error("Error en forgotPassword:", error);
         res.status(500).send({ status: 'error', message: 'Error al enviar correo' });
     }
 }
@@ -114,15 +117,15 @@ const resetPassword = async (req, res) => {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const email = decoded.email;
 
-        const user = await userModel.findOne({ email });
+        const user = await userDAO.getByEmail(email);
         if (!user) return res.status(404).send({ status: 'error', message: 'Usuario no encontrado' });
 
         if (isValidPassword(user, newPassword)) {
             return res.status(400).send({ status: 'error', message: 'No puedes usar la misma contraseña anterior' });
         }
 
-        user.password = createHash(newPassword);
-        await userModel.updateOne({ email }, user);
+        const newPasswordHash = createHash(newPassword);
+        await userDAO.update(email, { password: newPasswordHash });
 
         res.send({ status: 'success', message: 'Contraseña actualizada' });
 
@@ -130,6 +133,7 @@ const resetPassword = async (req, res) => {
         if (error.name === 'TokenExpiredError') {
             return res.status(400).send({ status: 'error', message: 'El enlace ha expirado' });
         }
+        console.error("Error en resetPassword:", error);
         res.status(500).send({ status: 'error', message: 'Error al restablecer' });
     }
 }

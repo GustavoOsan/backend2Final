@@ -6,7 +6,7 @@
             <div class="card">
                 <h3>{{this.title}}</h3>
                 <p>{{this.description}}</p>
-                <p>Categoría: {{this.category}}</p>
+                <p>Categoria: {{this.category}}</p>
                 <div class="price">$ {{this.price}}</div>
                 <button class="add-to-cart-btn" data-id="{{this._id}}">Agregar al Carrito</button>
             </div>
@@ -18,7 +18,7 @@
             <a href="{{prevLink}}">Anterior</a>
         {{/if}}
 
-        <span>Página {{page}} de {{totalPages}}</span>
+        <span>Pagina {{page}} de {{totalPages}}</span>
 
         {{#if hasNextPage}}
             <a href="{{nextLink}}">Siguiente</a>
@@ -30,20 +30,20 @@
     document.querySelectorAll('.add-to-cart-btn').forEach(button => {
         button.addEventListener('click', async () => {
             const pid = button.getAttribute('data-id');
-            const cid = '692b5f73466abdc3486344f5'; 
 
             try {
-                const response = await fetch(`/api/carts/${cid}/product/${pid}`, {
+                const response = await fetch(`/api/carts/mycart/product/${pid}`, {
                     method: 'POST'
                 });
                 
                 if (response.ok) {
-                    alert('Producto agregado al carrito');
+                    alert('Producto agregado al carrito exitosamente');
                 } else {
-                    alert('Error al agregar');
+                    const errorData = await response.json();
+                    alert('Error: ' + errorData.message);
                 }
             } catch (error) {
-                console.error(error);
+                console.error("Error en la peticion:", error);
             }
         });
     });

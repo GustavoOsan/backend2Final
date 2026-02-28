@@ -1,4 +1,4 @@
-const productModel = require('../dao/models/product.model');
+const productDAO = require('../dao/product.dao');
 
 const getProducts = async (req, res) => {
     try {
@@ -21,7 +21,7 @@ const getProducts = async (req, res) => {
             options.sort = { price: sort === 'asc' ? 1 : -1 };
         }
 
-        const result = await productModel.paginate(filter, options);
+        const result = await productDAO.getAll(filter, options);
 
         res.send({
             status: 'success',
@@ -45,7 +45,7 @@ const getProducts = async (req, res) => {
 const getProductById = async (req, res) => {
     try {
         const { pid } = req.params;
-        const product = await productModel.findById(pid);
+        const product = await productDAO.getById(pid);
         
         if (!product) {
             return res.status(404).send({ status: 'error', message: 'Producto no encontrado' });
@@ -65,7 +65,7 @@ const createProduct = async (req, res) => {
             return res.status(400).send({ status: 'error', message: 'Faltan campos obligatorios' });
         }
 
-        const result = await productModel.create({
+        const result = await productDAO.create({
             title, description, price, thumbnail, code, stock, status, category
         });
 
@@ -80,7 +80,7 @@ const updateProduct = async (req, res) => {
         const { pid } = req.params;
         const productToUpdate = req.body;
 
-        const result = await productModel.updateOne({ _id: pid }, productToUpdate);
+        const result = await productDAO.update(pid, productToUpdate);
         
         res.send({ status: 'success', payload: result });
     } catch (error) {
@@ -91,7 +91,7 @@ const updateProduct = async (req, res) => {
 const deleteProduct = async (req, res) => {
     try {
         const { pid } = req.params;
-        const result = await productModel.deleteOne({ _id: pid });
+        const result = await productDAO.delete(pid);
         
         res.send({ status: 'success', payload: result });
     } catch (error) {

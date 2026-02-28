@@ -1,15 +1,15 @@
-const cartModel = require('../dao/models/cart.model');
-const productModel = require('../dao/models/product.model');
-const ticketModel = require('../dao/models/ticket.model'); 
-const { v4: uuidv4 } = require('uuid'); 
-const { sendMail } = require('../services/mail.service'); 
+const cartDAO = require('../dao/cart.dao');
+const productDAO = require('../dao/product.dao');
+const ticketDAO = require('../dao/ticket.dao'); 
+const { v4: uuidv4 } = require('uuid');
+const { sendMail } = require('../services/mail.service');
 
 const createCart = async (req, res) => {
     try {
-        const newCart = await cartModel.create({ products: [] });
+        const newCart = await cartDAO.create();
         res.send({ status: 'success', payload: newCart });
     } catch (error) {
-        console.log(error);
+        console.error("Error en createCart:", error);
         res.status(500).send({ status: 'error', message: 'Error al crear carrito' });
     }
 }
@@ -17,7 +17,7 @@ const createCart = async (req, res) => {
 const getCartById = async (req, res) => {
     try {
         const { cid } = req.params;
-        const cart = await cartModel.findById(cid).populate('products.product');
+        const cart = await cartDAO.getById(cid);
 
         if (!cart) {
             return res.status(404).send({ status: 'error', message: 'Carrito no encontrado' });
@@ -25,22 +25,27 @@ const getCartById = async (req, res) => {
 
         res.send({ status: 'success', payload: cart });
     } catch (error) {
-        console.log(error);
+        console.error("Error en getCartById:", error);
         res.status(500).send({ status: 'error', message: 'Error al obtener carrito' });
     }
 }
 
 const addProductToCart = async (req, res) => {
     try {
-        const { cid, pid } = req.params;
-        
-        const cart = await cartModel.findById(cid);
+        const { pid } = req.params;
+        const cid = req.params.cid || req.user.cart;
+
+        if (!cid) {
+            return res.status(400).send({ status: 'error', message: 'No se encontro un carrito para este usuario' });
+        }
+
+        const cart = await cartDAO.getById(cid);
         if (!cart) return res.status(404).send({ status: 'error', message: 'Carrito no encontrado' });
 
-        const product = await productModel.findById(pid);
+        const product = await productDAO.getById(pid);
         if (!product) return res.status(404).send({ status: 'error', message: 'Producto no encontrado' });
 
-        const productIndex = cart.products.findIndex(p => p.product.toString() === pid);
+        const productIndex = cart.products.findIndex(p => p.product._id.toString() === pid);
 
         if (productIndex === -1) {
             cart.products.push({ product: pid, quantity: 1 });
@@ -48,11 +53,11 @@ const addProductToCart = async (req, res) => {
             cart.products[productIndex].quantity++;
         }
 
-        const result = await cartModel.updateOne({ _id: cid }, cart);
+        const result = await cartDAO.update(cid, { products: cart.products });
         res.send({ status: 'success', payload: result });
 
     } catch (error) {
-        console.log(error);
+        console.error("Error en addProductToCart:", error);
         res.status(500).send({ status: 'error', message: 'Error al agregar producto al carrito' });
     }
 }
@@ -60,7 +65,7 @@ const addProductToCart = async (req, res) => {
 const purchaseCart = async (req, res) => {
     try {
         const { cid } = req.params;
-        const cart = await cartModel.findById(cid).populate('products.product');
+        const cart = await cartDAO.getById(cid);
 
         if (!cart) return res.status(404).send({ status: 'error', message: 'Carrito no encontrado' });
 
@@ -74,21 +79,21 @@ const purchaseCart = async (req, res) => {
 
             if (product.stock >= quantity) {
                 product.stock -= quantity;
-                await product.save(); 
+                await productDAO.update(product._id, { stock: product.stock }); 
                 totalAmount += product.price * quantity;
             } else {
-                unavailableProducts.push(item.product._id.toString());
+                unavailableProducts.push(product._id.toString());
             }
         }
-
+        
         cart.products = cart.products.filter(item => unavailableProducts.includes(item.product._id.toString()));
-        await cart.save();
+        await cartDAO.update(cid, { products: cart.products });
 
         if (totalAmount > 0) {
-            const ticket = await ticketModel.create({
+            const ticket = await ticketDAO.create({
                 code: uuidv4(),
                 amount: totalAmount,
-                purchaser: req.user.email 
+                purchaser: req.user.email
             });
 
             await sendMail({
@@ -96,10 +101,10 @@ const purchaseCart = async (req, res) => {
                 subject: `Compra exitosa - Ticket: ${ticket.code}`,
                 html: `
                     <h1>¡Gracias por tu compra!</h1>
-                    <p>Tu código de ticket es: <strong>${ticket.code}</strong></p>
+                    <p>Tu codigo de ticket es: <strong>${ticket.code}</strong></p>
                     <p>Total pagado: $${ticket.amount}</p>
                     <hr>
-                    <p>Los productos que no tenían stock han quedado en tu carrito.</p>
+                    <p>Los productos que no tenian stock han quedado en tu carrito.</p>
                 `
             });
 
@@ -118,7 +123,7 @@ const purchaseCart = async (req, res) => {
         }
 
     } catch (error) {
-        console.log(error);
+        console.error("Error en purchaseCart:", error);
         res.status(500).send({ status: 'error', message: 'Error al procesar la compra' });
     }
 }
@@ -127,5 +132,5 @@ module.exports = {
     createCart,
     getCartById,
     addProductToCart,
-    purchaseCart 
+    purchaseCart
 }

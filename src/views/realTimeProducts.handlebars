@@ -2,18 +2,18 @@
 
 <form id="create-product-form">
     <h3>Agregar Producto</h3>
-    <input type="text" name="title" placeholder="Título" required>
-    <input type="text" name="description" placeholder="Descripción" required>
-    <input type="text" name="code" placeholder="Código" required>
+    <input type="text" name="title" placeholder="Titulo" required>
+    <input type="text" name="description" placeholder="Descripcion" required>
+    <input type="text" name="code" placeholder="Codigo" required>
     <input type="number" name="price" placeholder="Precio" required>
     <input type="number" name="stock" placeholder="Stock" required>
-    <input type="text" name="category" placeholder="Categoría" required>
+    <input type="text" name="category" placeholder="Categoria" required>
     <button type="submit">Crear Producto</button>
 </form>
 
 <hr>
 
-<h3>Catálogo de Productos</h3>
+<h3>Catalogo de Productos</h3>
 <div id="products-list" class="product-grid">
     {{#each products}}
         <div class="card">
@@ -21,7 +21,7 @@
             <p>{{this.description}}</p>
             <div class="price">$ {{this.price}}</div>
             <p>Stock: {{this.stock}}</p>
-            <button class="delete-btn" data-id="{{this.id}}">Eliminar</button>
+            <button class="delete-btn" data-id="{{this._id}}">Eliminar</button>
         </div>
     {{/each}}
 </div>
